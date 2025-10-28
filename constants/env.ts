@@ -18,7 +18,9 @@ export const env = createEnv({
    * What object holds the environment variables at runtime. This is usually
    * `process.env` or `import.meta.env`.
    */
-  runtimeEnv: process.env,
+  runtimeEnv: {
+    EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL
+  },
 
   /**
    * By default, this library will feed the environment variables directly to
