@@ -1,12 +1,12 @@
 import { env } from "@/constants/env";
 import { getItem } from "@/secure-store";
 import createFetchClient, { Middleware } from "openapi-fetch";
+import createClient from "openapi-react-query";
 import type { paths } from "./paths";
-
 
 const languageMiddleware: Middleware = {
   async onRequest({ request }) {
-     const accessToken = await getItem("accessToken")
+    const accessToken = await getItem("accessToken");
 
     request.headers.set("Authorization", `Bearer ${accessToken}`);
 
@@ -20,3 +20,5 @@ export const fetchClient = createFetchClient<paths>({
 });
 
 fetchClient.use(languageMiddleware);
+
+export const api = createClient(fetchClient);

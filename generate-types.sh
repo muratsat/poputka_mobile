@@ -3,6 +3,7 @@
 set -a
 source .env
 
+API_URL=${EXPO_PUBLIC_API_URL}
 SOURCE=${API_URL:-http://localhost:8000}/openapi.json
 DESTINATION=api/paths.d.ts
 

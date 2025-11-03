@@ -72,75 +72,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/articles/": {
+  "/api/trips/": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get Articles */
-    get: operations["get_articles_api_articles__get"];
+    /** Get Trips */
+    get: operations["get_trips_api_trips__get"];
     put?: never;
-    /** Create Article */
-    post: operations["create_article_api_articles__post"];
+    /** Create Trip */
+    post: operations["create_trip_api_trips__post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/articles/{id}": {
+  "/api/trips/ws/client": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get Article */
-    get: operations["get_article_api_articles__id__get"];
+    /** Get Demo Page */
+    get: operations["get_demo_page_api_trips_ws_client_get"];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    /** Update Article */
-    patch: operations["update_article_api_articles__id__patch"];
+    patch?: never;
     trace?: never;
   };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /** Article */
-    Article: {
-      /** Title */
-      title: string;
-      /** Content */
-      content: string;
-      /** Scheduled Date */
-      scheduled_date?: string | null;
-      /** Archived Date */
-      archived_date?: string | null;
-      /** Id */
-      id: number;
-    };
-    /** ArticleCreate */
-    ArticleCreate: {
-      /** Title */
-      title: string;
-      /** Content */
-      content: string;
-      /** Scheduled Date */
-      scheduled_date?: string | null;
-      /** Archived Date */
-      archived_date?: string | null;
-    };
-    /** ArticleUpdate */
-    ArticleUpdate: {
-      /** Archive */
-      archive: boolean;
-    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -162,6 +132,89 @@ export interface components {
       access_token: string;
       /** Refresh Token */
       refresh_token: string;
+    };
+    /** TripCreate */
+    TripCreate: {
+      role: components["schemas"]["TripRole"];
+      type: components["schemas"]["TripType"] | null;
+      /** Origin */
+      origin: string;
+      /** Destination */
+      destination: string;
+      /**
+       * Departure Date
+       * Format: date
+       */
+      departure_date: string;
+      /** Departure Time */
+      departure_time: string | null;
+      /** Departure Now */
+      departure_now: boolean;
+      /** Number Of People */
+      number_of_people: number;
+      /** Suggested Price */
+      suggested_price: number | null;
+      /** Comment */
+      comment: string | null;
+    };
+    /** TripResponse */
+    TripResponse: {
+      role: components["schemas"]["TripRole"];
+      type: components["schemas"]["TripType"] | null;
+      /** Origin */
+      origin: string;
+      /** Destination */
+      destination: string;
+      /**
+       * Departure Date
+       * Format: date
+       */
+      departure_date: string;
+      /** Departure Time */
+      departure_time: string | null;
+      /** Departure Now */
+      departure_now: boolean;
+      /** Number Of People */
+      number_of_people: number;
+      /** Suggested Price */
+      suggested_price: number | null;
+      /** Comment */
+      comment: string | null;
+      /** Id */
+      id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Active */
+      active: boolean;
+      /** User Id */
+      user_id: string;
+    };
+    /**
+     * TripRole
+     * @enum {string}
+     */
+    TripRole: "driver" | "passenger";
+    /**
+     * TripType
+     * @enum {string}
+     */
+    TripType: "salon" | "hitch_ride" | "delivery";
+    /** User */
+    User: {
+      /** Id */
+      id: string;
+      /** Name */
+      name?: string | null;
+      /** Phone Number */
+      phone_number: string;
     };
     /** ValidationError */
     ValidationError: {
@@ -261,7 +314,7 @@ export interface operations {
       200: {
         headers: Record<string, unknown>;
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["User"];
         };
       };
     };
@@ -295,12 +348,11 @@ export interface operations {
       };
     };
   };
-  get_articles_api_articles__get: {
+  get_trips_api_trips__get: {
     parameters: {
-      query: {
-        status: "scheduled" | "published" | "archived";
-        limit?: unknown;
-        offset?: unknown;
+      query?: {
+        cursor_date?: string | null;
+        limit?: number;
       };
       header?: never;
       path?: never;
@@ -312,7 +364,7 @@ export interface operations {
       200: {
         headers: Record<string, unknown>;
         content: {
-          "application/json": components["schemas"]["Article"][];
+          "application/json": components["schemas"]["TripResponse"][];
         };
       };
       /** @description Validation Error */
@@ -324,7 +376,7 @@ export interface operations {
       };
     };
   };
-  create_article_api_articles__post: {
+  create_trip_api_trips__post: {
     parameters: {
       query?: never;
       header?: never;
@@ -333,15 +385,15 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ArticleCreate"];
+        "application/json": components["schemas"]["TripCreate"];
       };
     };
     responses: {
       /** @description Successful Response */
-      200: {
+      201: {
         headers: Record<string, unknown>;
         content: {
-          "application/json": components["schemas"]["Article"];
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -353,13 +405,11 @@ export interface operations {
       };
     };
   };
-  get_article_api_articles__id__get: {
+  get_demo_page_api_trips_ws_client_get: {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        id: number;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -368,45 +418,7 @@ export interface operations {
       200: {
         headers: Record<string, unknown>;
         content: {
-          "application/json": components["schemas"]["Article"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: Record<string, unknown>;
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_article_api_articles__id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ArticleUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: Record<string, unknown>;
-        content: {
-          "application/json": components["schemas"]["Article"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: Record<string, unknown>;
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
+          "application/json": unknown;
         };
       };
     };

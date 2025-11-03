@@ -3,6 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider
 } from "@react-navigation/native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
@@ -15,6 +16,8 @@ import { useEffect } from "react";
 export const unstable_settings = {
   initialRouteName: "(tabs)/explore"
 };
+
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -32,43 +35,45 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            backgroundColor: "transparent"
-          }
-        }}
-      >
-        <Stack.Screen
-          name="auth/phone"
-          options={{
+      <QueryClientProvider client={queryClient}>
+        <Stack
+          screenOptions={{
             headerShown: false,
-            statusBarStyle: "light",
-            statusBarTranslucent: Platform.OS === "android"
+            contentStyle: {
+              backgroundColor: "transparent"
+            }
           }}
-        />
-        <Stack.Screen
-          name="auth/verify"
-          options={{
-            headerShown: false,
-            statusBarStyle: "light",
-            statusBarTranslucent: Platform.OS === "android"
-          }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: false,
-            statusBarStyle: "dark"
-          }}
-        />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" translucent={Platform.OS === "android"} />
+        >
+          <Stack.Screen
+            name="auth/phone"
+            options={{
+              headerShown: false,
+              statusBarStyle: "light",
+              statusBarTranslucent: Platform.OS === "android"
+            }}
+          />
+          <Stack.Screen
+            name="auth/verify"
+            options={{
+              headerShown: false,
+              statusBarStyle: "light",
+              statusBarTranslucent: Platform.OS === "android"
+            }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false,
+              statusBarStyle: "dark"
+            }}
+          />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
+        </Stack>
+        <StatusBar style="auto" translucent={Platform.OS === "android"} />
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
