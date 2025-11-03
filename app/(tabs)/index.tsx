@@ -1,21 +1,35 @@
 import { api } from "@/api";
 import { components } from "@/api/paths";
 import { AppColors } from "@/constants/colors";
+import { env } from "@/constants/env";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  LayoutAnimation,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  UIManager,
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Trip = components["schemas"]["TripResponse"];
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === "android") {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
 export default function HomeScreen() {
+  const [wsTrips, setWsTrips] = useState<Trip[]>([]);
+
   const { data, hasNextPage, isFetchingNextPage, fetchNextPage } =
     api.useInfiniteQuery(
       "get",
@@ -33,6 +47,59 @@ export default function HomeScreen() {
         initialPageParam: null
       }
     );
+
+  useEffect(() => {
+    const wsUrl =
+      env.EXPO_PUBLIC_API_URL.replace("https://", "wss://") + "/api/trips/ws/";
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log("WebSocket connected to", wsUrl);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const trip: Trip = JSON.parse(event.data);
+        console.log("Received trip update:", trip);
+
+        // Configure smooth layout animation for all cards moving down
+        LayoutAnimation.configureNext({
+          duration: 400,
+          create: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.opacity
+          },
+          update: {
+            type: LayoutAnimation.Types.easeInEaseOut,
+            property: LayoutAnimation.Properties.scaleXY
+          }
+        });
+
+        // Add new trip to the top of the list
+        setWsTrips((prevTrips) => [trip, ...prevTrips]);
+      } catch (error) {
+        console.error("Failed to parse WebSocket message:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    // Cleanup function to close WebSocket when component unmounts
+    return () => {
+      if (
+        ws.readyState === WebSocket.OPEN ||
+        ws.readyState === WebSocket.CONNECTING
+      ) {
+        ws.close();
+      }
+    };
+  }, []);
 
   const handleCall = (trip: Trip) => {
     // In a real app, this would use the actual phone number
@@ -67,7 +134,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.tripsListContent}
         showsVerticalScrollIndicator={false}
       >
-        {data?.pages.length === 0 ? (
+        {data?.pages.length === 0 && wsTrips.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
               name="car-outline"
@@ -81,9 +148,24 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
+            {/* WebSocket trips at the top */}
+            {wsTrips.map((trip) => (
+              <AnimatedTripCard
+                key={`ws-${trip.id}`}
+                trip={trip}
+                onCall={handleCall}
+                isNew={true}
+              />
+            ))}
+            {/* API fetched trips */}
             {data?.pages.flatMap((page) =>
               page.map((trip) => (
-                <TripCard key={trip.id} trip={trip} onCall={handleCall} />
+                <AnimatedTripCard
+                  key={trip.id}
+                  trip={trip}
+                  onCall={handleCall}
+                  isNew={false}
+                />
               ))
             )}
             {isFetchingNextPage && (
@@ -98,6 +180,61 @@ export default function HomeScreen() {
   );
 }
 
+function AnimatedTripCard({
+  trip,
+  onCall,
+  isNew
+}: {
+  trip: Trip;
+  onCall: (trip: Trip) => void;
+  isNew?: boolean;
+}) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isNew) {
+      // Fade in animation
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true
+      }).start();
+
+      // Pulse animation
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.03,
+          duration: 300,
+          useNativeDriver: true
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true
+        })
+      ]).start();
+    } else {
+      fadeAnim.setValue(1);
+    }
+  }, [isNew, fadeAnim, pulseAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.tripCard,
+        isNew && styles.newTripCard,
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: pulseAnim }]
+        }
+      ]}
+    >
+      <TripCard trip={trip} onCall={onCall} />
+    </Animated.View>
+  );
+}
+
 function TripCard({
   trip,
   onCall
@@ -109,7 +246,7 @@ function TripCard({
   const badgeColor = isDriver ? AppColors.primary : AppColors.secondary;
 
   return (
-    <View style={styles.tripCard}>
+    <View style={styles.tripCardContent}>
       <View style={styles.tripCardHeader}>
         <View style={styles.tripCardHeaderLeft}>
           <View style={[styles.roleBadge, { backgroundColor: badgeColor }]}>
@@ -265,10 +402,23 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   tripCard: {
+    marginBottom: 12,
+    position: "relative"
+  },
+  newTripCard: {
+    shadowColor: AppColors.accent,
+    shadowOffset: {
+      width: 0,
+      height: 0
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8
+  },
+  tripCardContent: {
     backgroundColor: AppColors.cardLight,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: AppColors.border
   },
