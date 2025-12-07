@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/auth/users/{user_id}/phone": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get User Phone Number */
+    get: operations["get_user_phone_number_api_auth_users__user_id__phone_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/trips/": {
     parameters: {
       query?: never;
@@ -216,6 +233,11 @@ export interface components {
       /** Phone Number */
       phone_number: string;
     };
+    /** UserPhoneNumber */
+    UserPhoneNumber: {
+      /** Phone Number */
+      phone_number: string;
+    };
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -337,6 +359,33 @@ export interface operations {
         headers: Record<string, unknown>;
         content: {
           "application/json": components["schemas"]["TokenPair"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: Record<string, unknown>;
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_user_phone_number_api_auth_users__user_id__phone_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: Record<string, unknown>;
+        content: {
+          "application/json": components["schemas"]["UserPhoneNumber"];
         };
       };
       /** @description Validation Error */

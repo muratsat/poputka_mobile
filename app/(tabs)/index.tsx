@@ -1,13 +1,16 @@
-import { api } from "@/api";
+import { api, fetchClient } from "@/api";
 import { components } from "@/api/paths";
 import { AppColors } from "@/constants/colors";
 import { env } from "@/constants/env";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   LayoutAnimation,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -29,6 +32,7 @@ if (Platform.OS === "android") {
 
 export default function HomeScreen() {
   const [wsTrips, setWsTrips] = useState<Trip[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"drivers" | "passengers">("drivers");
 
   const { data, hasNextPage, isFetchingNextPage, fetchNextPage } =
     api.useInfiniteQuery(
@@ -101,10 +105,52 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const handleCall = (trip: Trip) => {
-    // In a real app, this would use the actual phone number
-    console.log(`Calling ${trip.user_id}`);
-    // Linking.openURL(`tel:+15551234567`);
+  const handleCall = async (trip: Trip) => {
+    try {
+      const { data, error } = await fetchClient.GET(
+        "/api/auth/users/{user_id}/phone",
+        {
+          params: {
+            path: {
+              user_id: trip.user_id
+            }
+          }
+        }
+      );
+
+      if (error || !data) {
+        Alert.alert("Ошибка", "Не удалось получить номер телефона");
+        return;
+      }
+
+      const isDriver = trip.role === "driver";
+      const title = isDriver ? "Связаться с водителем" : "Связаться с пассажиром";
+
+      Alert.alert(
+        title,
+        `Номер телефона: ${data.phone_number}\n\nОткрыть приложение для звонка?`,
+        [
+          {
+            text: "Отмена",
+            style: "cancel"
+          },
+          {
+            text: "Позвонить",
+            onPress: () => Linking.openURL(`tel:${data.phone_number}`)
+          },
+          {
+            text: "Копировать",
+            onPress: async () => {
+              await Clipboard.setStringAsync(data.phone_number);
+              Alert.alert("Скопировано", `Номер ${data.phone_number} скопирован в буфер обмена`);
+            }
+          }
+        ]
+      );
+    } catch (err) {
+      Alert.alert("Ошибка", "Не удалось получить номер телефона");
+      console.error(err);
+    }
   };
 
   const handleScroll = (event: any) => {
@@ -119,10 +165,73 @@ export default function HomeScreen() {
     }
   };
 
+  // Filter trips based on selected tab
+  const filteredWsTrips = wsTrips.filter((trip) =>
+    selectedTab === "drivers" ? trip.role === "driver" : trip.role === "passenger"
+  );
+
+  const getFilteredPageTrips = () => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) =>
+      page.filter((trip) =>
+        selectedTab === "drivers" ? trip.role === "driver" : trip.role === "passenger"
+      )
+    );
+  };
+
+  const filteredPageTrips = getFilteredPageTrips();
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Найти поездку</Text>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              selectedTab === "drivers" && styles.tabActive
+            ]}
+            onPress={() => setSelectedTab("drivers")}
+          >
+            <Ionicons
+              name="car"
+              size={20}
+              color={selectedTab === "drivers" ? AppColors.primary : AppColors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === "drivers" && styles.tabTextActive
+              ]}
+            >
+              Водители
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              selectedTab === "passengers" && styles.tabActive
+            ]}
+            onPress={() => setSelectedTab("passengers")}
+          >
+            <Ionicons
+              name="person"
+              size={20}
+              color={selectedTab === "passengers" ? AppColors.secondary : AppColors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === "passengers" && styles.tabTextActive
+              ]}
+            >
+              Пассажиры
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -134,22 +243,24 @@ export default function HomeScreen() {
         contentContainerStyle={styles.tripsListContent}
         showsVerticalScrollIndicator={false}
       >
-        {data?.pages.length === 0 && wsTrips.length === 0 ? (
+        {filteredPageTrips.length === 0 && filteredWsTrips.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons
-              name="car-outline"
+              name={selectedTab === "drivers" ? "car-outline" : "person-outline"}
               size={64}
               color={AppColors.textLight}
             />
-            <Text style={styles.emptyStateText}>Поездки не найдены</Text>
+            <Text style={styles.emptyStateText}>
+              {selectedTab === "drivers" ? "Водители не найдены" : "Пассажиры не найдены"}
+            </Text>
             <Text style={styles.emptyStateSubtext}>
-              Попробуйте изменить параметры поиска
+              Попробуйте переключить вкладку или подождите новых поездок
             </Text>
           </View>
         ) : (
           <>
             {/* WebSocket trips at the top */}
-            {wsTrips.map((trip) => (
+            {filteredWsTrips.map((trip) => (
               <AnimatedTripCard
                 key={`ws-${trip.id}`}
                 trip={trip}
@@ -158,16 +269,14 @@ export default function HomeScreen() {
               />
             ))}
             {/* API fetched trips */}
-            {data?.pages.flatMap((page) =>
-              page.map((trip) => (
+            {filteredPageTrips.map((trip) => (
                 <AnimatedTripCard
                   key={trip.id}
                   trip={trip}
                   onCall={handleCall}
                   isNew={false}
                 />
-              ))
-            )}
+              ))}
             {isFetchingNextPage && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={AppColors.primary} />
@@ -335,6 +444,36 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: AppColors.textPrimary,
     marginBottom: 16
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12
+  },
+  tab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: AppColors.base,
+    borderWidth: 1,
+    borderColor: AppColors.border
+  },
+  tabActive: {
+    backgroundColor: AppColors.primary + "15",
+    borderColor: AppColors.primary
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: AppColors.textSecondary
+  },
+  tabTextActive: {
+    color: AppColors.primary
   },
   searchContainer: {
     flexDirection: "row",
