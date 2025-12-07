@@ -1,59 +1,65 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { AppColors } from '@/constants/colors';
-import { mockUser } from '@/data/mockData';
+  Alert
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { AppColors } from "@/constants/colors";
+import { api } from "@/api";
+import { setItem } from "@/secure-store";
 
 export default function ProfileScreen() {
-  const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
+  const { data: user, isLoading } = api.useQuery(
+    "get",
+    "/api/auth/token/verify"
+  );
+
+  const handleLogout = async () => {
+    Alert.alert("Выйти", "Вы уверены, что хотите выйти?", [
+      { text: "Отмена", style: "cancel" },
       {
-        text: 'Log Out',
-        style: 'destructive',
-        onPress: () => {
-          console.log('Logging out...');
-          router.replace('/auth/phone');
-        },
-      },
+        text: "Выйти",
+        style: "destructive",
+        onPress: async () => {
+          await setItem("accessToken", "");
+          await setItem("refreshToken", "");
+          router.replace("/auth/phone");
+        }
+      }
     ]);
   };
 
-  const handleEditProfile = () => {
-    console.log('Edit profile');
+  const handleNotImplemented = (feature: string) => {
+    Alert.alert("В разработке", `Функция "${feature}" пока не реализована`);
   };
 
-  const handleMyVehicles = () => {
-    console.log('My vehicles');
-  };
-
-  const handleSavedLocations = () => {
-    console.log('Saved locations');
-  };
-
-  const handleSettings = () => {
-    console.log('Settings');
-  };
-
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string | null) => {
+    if (!name) return "?";
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase();
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Загрузка...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
@@ -63,94 +69,139 @@ export default function ProfileScreen() {
         <View style={styles.userCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials(mockUser.name)}</Text>
+              <Text style={styles.avatarText}>
+                {getInitials(user?.name)}
+              </Text>
             </View>
           </View>
 
-          <Text style={styles.userName}>{mockUser.name}</Text>
-          <Text style={styles.userPhone}>{mockUser.phone}</Text>
-
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={20} color={AppColors.accent} />
-            <Text style={styles.ratingText}>{mockUser.rating.toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({mockUser.reviewCount} reviews)</Text>
-          </View>
+          <Text style={styles.userName}>{user?.name || "Пользователь"}</Text>
+          <Text style={styles.userPhone}>{user?.phone_number}</Text>
         </View>
 
-        {/* Statistics Grid */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Ionicons name="car" size={24} color={AppColors.primary} />
-            <Text style={styles.statNumber}>{mockUser.tripsAsDriver}</Text>
-            <Text style={styles.statLabel}>As Driver</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="person" size={24} color={AppColors.secondary} />
-            <Text style={styles.statNumber}>{mockUser.tripsAsPassenger}</Text>
-            <Text style={styles.statLabel}>As Passenger</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="analytics" size={24} color={AppColors.accent} />
-            <Text style={styles.statNumber}>
-              {mockUser.tripsAsDriver + mockUser.tripsAsPassenger}
-            </Text>
-            <Text style={styles.statLabel}>Total Trips</Text>
-          </View>
+        {/* Statistics - Not available in API */}
+        <View style={styles.notImplementedSection}>
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color={AppColors.textSecondary}
+          />
+          <Text style={styles.notImplementedSectionText}>
+            Статистика поездок пока не доступна через API
+          </Text>
         </View>
 
         {/* Menu Options */}
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleNotImplemented("Редактировать профиль")}
+          >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: AppColors.primaryLight }]}>
-                <Ionicons name="person-outline" size={20} color={AppColors.primary} />
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: AppColors.primary + "20" }
+                ]}
+              >
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={AppColors.primary}
+                />
               </View>
-              <Text style={styles.menuItemText}>Edit Profile</Text>
+              <Text style={styles.menuItemText}>Редактировать профиль</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={AppColors.textLight} />
+            <View style={styles.notImplementedBadge}>
+              <Text style={styles.notImplementedBadgeText}>Скоро</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleMyVehicles}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleNotImplemented("Мои автомобили")}
+          >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: AppColors.secondaryLight + '40' }]}>
-                <Ionicons name="car-sport-outline" size={20} color={AppColors.secondary} />
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: AppColors.secondary + "20" }
+                ]}
+              >
+                <Ionicons
+                  name="car-sport-outline"
+                  size={20}
+                  color={AppColors.secondary}
+                />
               </View>
-              <Text style={styles.menuItemText}>My Vehicles</Text>
+              <Text style={styles.menuItemText}>Мои автомобили</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={AppColors.textLight} />
+            <View style={styles.notImplementedBadge}>
+              <Text style={styles.notImplementedBadgeText}>Скоро</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleSavedLocations}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleNotImplemented("Сохраненные места")}
+          >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: AppColors.accentLight + '40' }]}>
-                <Ionicons name="location-outline" size={20} color={AppColors.accentDark} />
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: AppColors.accent + "20" }
+                ]}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={20}
+                  color={AppColors.accentDark}
+                />
               </View>
-              <Text style={styles.menuItemText}>Saved Locations</Text>
+              <Text style={styles.menuItemText}>Сохраненные места</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={AppColors.textLight} />
+            <View style={styles.notImplementedBadge}>
+              <Text style={styles.notImplementedBadgeText}>Скоро</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => handleNotImplemented("Настройки")}
+          >
             <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, { backgroundColor: AppColors.textLight + '40' }]}>
-                <Ionicons name="settings-outline" size={20} color={AppColors.textSecondary} />
+              <View
+                style={[
+                  styles.menuIconContainer,
+                  { backgroundColor: AppColors.textLight + "20" }
+                ]}
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={20}
+                  color={AppColors.textSecondary}
+                />
               </View>
-              <Text style={styles.menuItemText}>Settings</Text>
+              <Text style={styles.menuItemText}>Настройки</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={AppColors.textLight} />
+            <View style={styles.notImplementedBadge}>
+              <Text style={styles.notImplementedBadgeText}>Скоро</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={AppColors.destructive} />
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+          <Ionicons
+            name="log-out-outline"
+            size={20}
+            color={AppColors.destructive}
+          />
+          <Text style={styles.logoutButtonText}>Выйти</Text>
         </TouchableOpacity>
 
         {/* App Version */}
-        <Text style={styles.versionText}>Poputka v1.0.0</Text>
+        <Text style={styles.versionText}>Попутка v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -159,133 +210,132 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: AppColors.base,
+    backgroundColor: AppColors.base
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  loadingText: {
+    fontSize: 16,
+    color: AppColors.textSecondary
   },
   content: {
-    flex: 1,
+    flex: 1
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 100
   },
   userCard: {
     backgroundColor: AppColors.cardLight,
     padding: 24,
-    alignItems: 'center',
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: AppColors.border,
+    borderBottomColor: AppColors.border
   },
   avatarContainer: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
     backgroundColor: AppColors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 4,
     borderColor: AppColors.base,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 4
   },
   avatarText: {
     fontSize: 36,
-    fontWeight: 'bold',
-    color: AppColors.textWhite,
+    fontWeight: "bold",
+    color: AppColors.textWhite
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: AppColors.textPrimary,
-    marginBottom: 4,
+    marginBottom: 4
   },
   userPhone: {
     fontSize: 14,
     color: AppColors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 12
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  ratingText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: AppColors.textPrimary,
-  },
-  reviewCount: {
-    fontSize: 14,
-    color: AppColors.textSecondary,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 16,
+  notImplementedSection: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: AppColors.cardLight,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
     padding: 16,
-    alignItems: 'center',
+    backgroundColor: AppColors.cardLight,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: AppColors.border,
+    borderColor: AppColors.border
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: AppColors.textPrimary,
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 12,
+  notImplementedSectionText: {
+    flex: 1,
+    fontSize: 13,
     color: AppColors.textSecondary,
-    marginTop: 4,
-    textAlign: 'center',
+    lineHeight: 18
   },
   menuContainer: {
     backgroundColor: AppColors.cardLight,
     marginHorizontal: 16,
-    marginTop: 8,
+    marginTop: 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: AppColors.border,
-    overflow: 'hidden',
+    overflow: "hidden"
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: AppColors.border,
+    borderBottomColor: AppColors.border
   },
   menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
+    flex: 1
   },
   menuIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center"
   },
   menuItemText: {
     fontSize: 16,
     color: AppColors.textPrimary,
-    fontWeight: '500',
+    fontWeight: "500"
+  },
+  notImplementedBadge: {
+    backgroundColor: AppColors.textLight + "40",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  notImplementedBadgeText: {
+    fontSize: 11,
+    color: AppColors.textSecondary,
+    fontWeight: "600"
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginHorizontal: 16,
     marginTop: 24,
     marginBottom: 16,
@@ -293,17 +343,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: AppColors.destructive,
-    gap: 8,
+    gap: 8
   },
   logoutButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: AppColors.destructive,
+    fontWeight: "600",
+    color: AppColors.destructive
   },
   versionText: {
     fontSize: 12,
     color: AppColors.textLight,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
+    textAlign: "center",
+    marginBottom: 24
+  }
 });

@@ -122,7 +122,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Find a Ride</Text>
+        <Text style={styles.headerTitle}>Найти поездку</Text>
       </View>
 
       <ScrollView
@@ -141,9 +141,9 @@ export default function HomeScreen() {
               size={64}
               color={AppColors.textLight}
             />
-            <Text style={styles.emptyStateText}>No trips found</Text>
+            <Text style={styles.emptyStateText}>Поездки не найдены</Text>
             <Text style={styles.emptyStateSubtext}>
-              Try adjusting your search or filters
+              Попробуйте изменить параметры поиска
             </Text>
           </View>
         ) : (
@@ -256,11 +256,11 @@ function TripCard({
               color={AppColors.textWhite}
             />
             <Text style={styles.roleBadgeText}>
-              {isDriver ? "Driver" : "Passenger"}
+              {isDriver ? "Водитель" : "Пассажир"}
             </Text>
           </View>
           <Text style={styles.userName}>
-            {isDriver ? "Driver" : "Passenger"}
+            {isDriver ? "Водитель" : "Пассажир"}
           </Text>
         </View>
         <Text style={styles.price}>${trip.suggested_price}</Text>
@@ -302,7 +302,7 @@ function TripCard({
             color={AppColors.textSecondary}
           />
           <Text style={styles.tripDetailText}>
-            {trip.number_of_people} seats
+            {trip.number_of_people} мест
           </Text>
         </View>
       </View>
@@ -310,7 +310,7 @@ function TripCard({
       <TouchableOpacity style={styles.callButton} onPress={() => onCall(trip)}>
         <Ionicons name="call" size={16} color={AppColors.primary} />
         <Text style={styles.callButtonText}>
-          Call {isDriver ? "driver" : "passenger"}
+          Позвонить {isDriver ? "водителю" : "пассажиру"}
         </Text>
       </TouchableOpacity>
     </View>
